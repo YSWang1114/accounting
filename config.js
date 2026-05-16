@@ -1,3 +1,5 @@
 // Put your deployed backend URL here after Render gives it to you.
 // Example: window.SPLIT_BILL_API_BASE = "https://your-service.onrender.com";
 window.SPLIT_BILL_API_BASE = "";
+window.SUPABASE_URL = "https://nphmnsqayfhygceyuhry.supabase.co";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5waG1uc3FheWZoeWdjZXl1aHJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MzIyMjYsImV4cCI6MjA5NDUwODIyNn0.4k2jXrPkLRQvrIK3rJrmH1U7BnQ9cJ2hjmqoJRtjgFU";
