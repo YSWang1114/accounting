@@ -4,12 +4,17 @@ const currency = new Intl.NumberFormat("zh-TW", {
   maximumFractionDigits: 0,
 });
 
+const supabaseUrl = window.SUPABASE_URL || "";
+const supabaseAnonKey = window.SUPABASE_ANON_KEY || "";
+const supabaseClient = supabaseUrl && supabaseAnonKey
+  ? window.supabase.createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
 let roomId = getRoomId();
 let people = [];
 let expenses = [];
 let repayments = [];
 let paymentDrafts = [{ id: crypto.randomUUID(), person: "", amount: "" }];
-let refreshTimer;
 
 const roomLine = document.querySelector("#roomLine");
 const roomUrl = document.querySelector("#roomUrl");
@@ -43,19 +48,27 @@ init();
 
 async function init() {
   updateRoomUi();
+  if (!supabaseClient) {
+    roomLine.textContent = "請先在 config.js 填入 Supabase URL 和 anon key。";
+    personName.disabled = true;
+    personForm.querySelector("button").disabled = true;
+    render();
+    return;
+  }
+
   await loadRoom();
-  refreshTimer = window.setInterval(loadRoomQuietly, 5000);
+  window.setInterval(loadRoomQuietly, 5000);
 }
 
 async function loadRoom() {
   try {
-    const data = await api(`/api/rooms/${roomId}`);
-    people = data.people || [];
-    expenses = data.expenses || [];
-    repayments = data.repayments || [];
+    const room = await getOrCreateRoom(roomId);
+    people = room.people || [];
+    expenses = room.expenses || [];
+    repayments = room.repayments || [];
     render();
-  } catch {
-    roomLine.textContent = "房間讀取失敗，請確認是用伺服器網址開啟。";
+  } catch (error) {
+    roomLine.textContent = `房間讀取失敗：${error.message}`;
   }
 }
 
@@ -64,6 +77,66 @@ async function loadRoomQuietly() {
   const isTyping = active && ["INPUT", "SELECT", "TEXTAREA"].includes(active.tagName);
   if (isTyping) return;
   await loadRoom();
+}
+
+async function getOrCreateRoom(id) {
+  const { data, error } = await supabaseClient
+    .from("rooms")
+    .select("data")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data?.data) return data.data;
+
+  const room = defaultRoom();
+  const { error: insertError } = await supabaseClient
+    .from("rooms")
+    .insert({ id, data: room });
+  if (insertError) throw insertError;
+  return room;
+}
+
+async function saveRoom() {
+  if (!supabaseClient) {
+    throw new Error("請先在 config.js 填入 Supabase anon key。");
+  }
+  const data = { people, expenses, repayments };
+  const { error } = await supabaseClient
+    .from("rooms")
+    .upsert({ id: roomId, data, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+function defaultRoom() {
+  return {
+    people: ["小安", "小美", "阿哲"],
+    expenses: [
+      {
+        id: crypto.randomUUID(),
+        title: "晚餐",
+        payments: [
+          { person: "小安", amount: 1000 },
+          { person: "小美", amount: 680 },
+        ],
+        shares: [
+          { person: "小安", amount: 560 },
+          { person: "小美", amount: 560 },
+          { person: "阿哲", amount: 560 },
+        ],
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    repayments: [
+      {
+        id: crypto.randomUUID(),
+        from: "阿哲",
+        to: "小安",
+        amount: 300,
+        date: new Date().toISOString(),
+      },
+    ],
+  };
 }
 
 function render() {
@@ -90,6 +163,14 @@ function keepDraftsValid() {
 
 function renderPeople() {
   peopleList.innerHTML = "";
+  personName.disabled = !supabaseClient;
+  personForm.querySelector("button").disabled = !supabaseClient;
+
+  if (!supabaseClient) {
+    peopleList.innerHTML = '<p class="empty-state">尚未連接 Supabase，請先填入 anon public key。</p>';
+    return;
+  }
+
   if (people.length === 0) {
     peopleList.innerHTML = '<p class="empty-state">還沒有成員。</p>';
     return;
@@ -106,8 +187,17 @@ function renderPeople() {
     button.setAttribute("aria-label", `刪除 ${person}`);
     button.textContent = "x";
     button.addEventListener("click", async () => {
-      await api(`/api/rooms/${roomId}/people/${encodeURIComponent(person)}`, { method: "DELETE" });
-      await loadRoom();
+      people = people.filter((entry) => entry !== person);
+      expenses = expenses
+        .map((expense) => ({
+          ...expense,
+          payments: expense.payments.filter((payment) => payment.person !== person),
+          shares: expense.shares.filter((share) => share.person !== person),
+        }))
+        .filter((expense) => expense.payments.length > 0 && expense.shares.length > 0);
+      repayments = repayments.filter((repayment) => repayment.from !== person && repayment.to !== person);
+      await saveRoom();
+      render();
     });
 
     chip.append(button);
@@ -116,7 +206,7 @@ function renderPeople() {
 }
 
 function renderExpenseControls() {
-  const disabled = people.length === 0;
+  const disabled = people.length === 0 || !supabaseClient;
   expenseTitleInput.disabled = disabled;
   addPaymentBtn.disabled = disabled;
   expenseForm.querySelector(".primary-action").disabled = disabled;
@@ -179,12 +269,11 @@ function renderSplitRows() {
 }
 
 function renderRepaymentControls() {
-  const disabled = people.length < 2;
+  const disabled = people.length < 2 || !supabaseClient;
   const options = people.map((person) => `<option value="${escapeAttribute(person)}">${escapeHtml(person)}</option>`).join("");
   repaymentFrom.innerHTML = options;
   repaymentTo.innerHTML = options;
   if (people.length > 1) repaymentTo.value = people[1];
-
   repaymentFrom.disabled = disabled;
   repaymentTo.disabled = disabled;
   repaymentAmount.disabled = disabled;
@@ -209,8 +298,9 @@ function renderLedger() {
         <div class="amount">${currency.format(getAmountTotal(expense.payments))}</div>
       `;
       item.append(deleteButton("刪除此花費", async () => {
-        await api(`/api/rooms/${roomId}/expenses/${expense.id}`, { method: "DELETE" });
-        await loadRoom();
+        expenses = expenses.filter((entry) => entry.id !== expense.id);
+        await saveRoom();
+        render();
       }));
       expenseList.append(item);
     });
@@ -230,8 +320,9 @@ function renderLedger() {
         <div class="amount">${currency.format(repayment.amount)}</div>
       `;
       item.append(deleteButton("刪除此還款", async () => {
-        await api(`/api/rooms/${roomId}/repayments/${repayment.id}`, { method: "DELETE" });
-        await loadRoom();
+        repayments = repayments.filter((entry) => entry.id !== repayment.id);
+        await saveRoom();
+        render();
       }));
       repaymentList.append(item);
     });
@@ -349,7 +440,6 @@ function getDraftShares(totalPaid) {
       .map((input) => ({ person: input.dataset.person, amount: Number(input.value) }))
       .filter((share) => people.includes(share.person) && share.amount > 0);
   }
-
   const splitters = [...splitList.querySelectorAll(".equal-split:checked")].map((input) => input.value);
   return splitEvenly(totalPaid, splitters);
 }
@@ -372,20 +462,30 @@ function addPaymentDraft() {
 }
 
 async function addRepayment(from, to, amount) {
-  await api(`/api/rooms/${roomId}/repayments`, {
-    method: "POST",
-    body: { from, to, amount },
-  });
-  await loadRoom();
+  repayments.push({ id: crypto.randomUUID(), from, to, amount, date: new Date().toISOString() });
+  await saveRoom();
+  render();
 }
 
 personForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!supabaseClient) {
+    roomLine.textContent = "請先在 config.js 填入 Supabase anon key。";
+    return;
+  }
+
   const name = personName.value.trim();
   if (!name || people.includes(name)) return;
-  await api(`/api/rooms/${roomId}/people`, { method: "POST", body: { name } });
-  personName.value = "";
-  await loadRoom();
+  try {
+    people.push(name);
+    personName.value = "";
+    await saveRoom();
+    render();
+  } catch (error) {
+    people = people.filter((person) => person !== name);
+    roomLine.textContent = `新增失敗：${error.message}`;
+    render();
+  }
 });
 
 addPaymentBtn.addEventListener("click", addPaymentDraft);
@@ -441,15 +541,19 @@ expenseForm.addEventListener("submit", async (event) => {
     return showError(formError, "付款合計和分攤合計需要相同，才算得出正確結算。");
   }
 
-  await api(`/api/rooms/${roomId}/expenses`, {
-    method: "POST",
-    body: { title, payments: combineAmounts(payments), shares: combineAmounts(shares) },
+  expenses.push({
+    id: crypto.randomUUID(),
+    title,
+    payments: combineAmounts(payments),
+    shares: combineAmounts(shares),
+    createdAt: new Date().toISOString(),
   });
 
   expenseForm.reset();
   paymentDrafts = [{ id: crypto.randomUUID(), person: people[0], amount: "" }];
   setSplitMode("equal");
-  await loadRoom();
+  await saveRoom();
+  render();
 });
 
 repaymentForm.addEventListener("submit", async (event) => {
@@ -477,15 +581,19 @@ settlementList.addEventListener("click", async (event) => {
 copyRoomBtn.addEventListener("click", copyRoomLink);
 copyRoomBtnInline.addEventListener("click", copyRoomLink);
 
-newRoomBtn.addEventListener("click", async () => {
-  const room = await api("/api/rooms", { method: "POST" });
-  window.location.href = `/?room=${room.id}`;
+newRoomBtn.addEventListener("click", () => {
+  const url = new URL(window.location.href);
+  url.searchParams.set("room", crypto.randomUUID().slice(0, 8));
+  window.location.href = url.href;
 });
 
 resetBtn.addEventListener("click", async () => {
-  await api(`/api/rooms/${roomId}/reset`, { method: "POST" });
+  people = [];
+  expenses = [];
+  repayments = [];
   paymentDrafts = [];
-  await loadRoom();
+  await saveRoom();
+  render();
 });
 
 function updateRoomUi() {
@@ -513,16 +621,6 @@ function getRoomId() {
   const params = new URLSearchParams(window.location.search);
   const current = params.get("room");
   return current && /^[a-zA-Z0-9-]{4,40}$/.test(current) ? current : crypto.randomUUID().slice(0, 8);
-}
-
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    method: options.method || "GET",
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
-  if (!response.ok) throw new Error(await response.text());
-  return response.status === 204 ? null : response.json();
 }
 
 function deleteButton(label, onClick) {

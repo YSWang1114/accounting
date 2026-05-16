@@ -5,7 +5,7 @@ const { randomUUID } = require("node:crypto");
 
 const port = Number(process.env.PORT || 3000);
 const root = __dirname;
-const dataDir = path.join(root, "data");
+const dataDir = process.env.DATA_DIR || path.join(root, "data");
 const roomsFile = path.join(dataDir, "rooms.json");
 
 const mimeTypes = {
@@ -46,6 +46,13 @@ const fallbackRoom = {
 
 const server = http.createServer(async (req, res) => {
   try {
+    setCorsHeaders(res);
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname.startsWith("/api/")) {
       await handleApi(req, res, url);
@@ -255,4 +262,10 @@ function sanitizeRoomId(value) {
 function sendJson(res, status, payload) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
+}
+
+function setCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
