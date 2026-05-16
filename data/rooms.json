@@ -1,0 +1,144 @@
+{
+  "d18a0ed7": {
+    "people": [
+      "小安",
+      "小美",
+      "阿哲"
+    ],
+    "expenses": [
+      {
+        "id": "06b0b18a-3b90-46ba-a59f-6a9513554348",
+        "title": "晚餐",
+        "payments": [
+          {
+            "person": "小安",
+            "amount": 1000
+          },
+          {
+            "person": "小美",
+            "amount": 680
+          }
+        ],
+        "shares": [
+          {
+            "person": "小安",
+            "amount": 560
+          },
+          {
+            "person": "小美",
+            "amount": 560
+          },
+          {
+            "person": "阿哲",
+            "amount": 560
+          }
+        ],
+        "createdAt": "2026-05-16T14:11:43.147Z"
+      }
+    ],
+    "repayments": [
+      {
+        "id": "3cd3282e-c0c1-4bf3-af98-431e64551e50",
+        "from": "阿哲",
+        "to": "小安",
+        "amount": 300,
+        "date": "2026-05-16T14:11:43.150Z"
+      }
+    ]
+  },
+  "79b5c103": {
+    "people": [
+      "小安",
+      "小美",
+      "阿哲"
+    ],
+    "expenses": [
+      {
+        "id": "34eb2098-7a37-4f57-94dd-fa03774dabef",
+        "title": "晚餐",
+        "payments": [
+          {
+            "person": "小安",
+            "amount": 1000
+          },
+          {
+            "person": "小美",
+            "amount": 680
+          }
+        ],
+        "shares": [
+          {
+            "person": "小安",
+            "amount": 560
+          },
+          {
+            "person": "小美",
+            "amount": 560
+          },
+          {
+            "person": "阿哲",
+            "amount": 560
+          }
+        ],
+        "createdAt": "2026-05-16T14:12:46.558Z"
+      }
+    ],
+    "repayments": [
+      {
+        "id": "2a01fb30-c278-4418-9652-3abb36c2875d",
+        "from": "阿哲",
+        "to": "小安",
+        "amount": 300,
+        "date": "2026-05-16T14:12:46.560Z"
+      }
+    ]
+  },
+  "b4a07c2f": {
+    "people": [
+      "小安",
+      "小美",
+      "阿哲",
+      "測試"
+    ],
+    "expenses": [
+      {
+        "id": "a79cacd8-d370-4852-bd7a-570b2855d131",
+        "title": "晚餐",
+        "payments": [
+          {
+            "person": "小安",
+            "amount": 1000
+          },
+          {
+            "person": "小美",
+            "amount": 680
+          }
+        ],
+        "shares": [
+          {
+            "person": "小安",
+            "amount": 560
+          },
+          {
+            "person": "小美",
+            "amount": 560
+          },
+          {
+            "person": "阿哲",
+            "amount": 560
+          }
+        ],
+        "createdAt": "2026-05-16T14:14:06.330Z"
+      }
+    ],
+    "repayments": [
+      {
+        "id": "e03beb99-2f52-4e94-86ce-d17b148d11a8",
+        "from": "阿哲",
+        "to": "小安",
+        "amount": 300,
+        "date": "2026-05-16T14:14:06.331Z"
+      }
+    ]
+  }
+}
