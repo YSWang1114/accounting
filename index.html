@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>分帳小幫手</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="分帳工具">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Split Bill</p>
+            <h1>分帳小幫手</h1>
+          </div>
+          <button class="ghost-button" id="resetBtn" type="button">清空帳本</button>
+        </header>
+
+        <section class="panel people-panel" aria-labelledby="peopleTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="peopleTitle">成員</h2>
+              <p>這是一個長期分帳團體，成員和紀錄會存在這台裝置上。</p>
+            </div>
+          </div>
+          <form class="inline-form" id="personForm">
+            <label class="sr-only" for="personName">成員姓名</label>
+            <input id="personName" name="personName" type="text" placeholder="例如：小安" autocomplete="off">
+            <button type="submit">新增</button>
+          </form>
+          <div class="chip-list" id="peopleList" aria-live="polite"></div>
+        </section>
+
+        <section class="panel expense-panel" aria-labelledby="expenseTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="expenseTitle">新增花費</h2>
+              <p>一筆花費可以有多人付款，也可以平均分或自訂每個人該分多少。</p>
+            </div>
+          </div>
+          <form class="expense-form" id="expenseForm">
+            <label class="title-field">
+              項目
+              <input id="expenseTitleInput" type="text" placeholder="例如：晚餐、住宿、計程車">
+            </label>
+
+            <fieldset class="payment-block">
+              <div class="field-head">
+                <legend>付款明細</legend>
+                <button class="small-button" id="addPaymentBtn" type="button">新增付款人</button>
+              </div>
+              <div class="payment-list" id="paymentList"></div>
+              <p class="form-note" id="paidTotal">已付款合計：NT$0</p>
+            </fieldset>
+
+            <fieldset class="split-block">
+              <legend>分攤方式</legend>
+              <div class="segmented-control" role="radiogroup" aria-label="分攤方式">
+                <label>
+                  <input type="radio" name="splitMode" value="equal" checked>
+                  <span>平均分攤</span>
+                </label>
+                <label>
+                  <input type="radio" name="splitMode" value="custom">
+                  <span>自訂金額</span>
+                </label>
+              </div>
+              <div class="split-list" id="splitList"></div>
+              <div class="custom-share-list" id="customShareList"></div>
+              <p class="form-note" id="shareTotal">分攤合計：NT$0</p>
+            </fieldset>
+
+            <p class="error-message" id="formError" role="alert"></p>
+            <button class="primary-action" type="submit">加入花費</button>
+          </form>
+        </section>
+
+        <section class="panel repayment-panel" aria-labelledby="repaymentTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="repaymentTitle">記錄還款</h2>
+              <p>例如 A 欠 B 800，可以先記錄 A 還 B 500，剩下的繼續累積。</p>
+            </div>
+          </div>
+          <form class="repayment-form" id="repaymentForm">
+            <label>
+              還款人
+              <select id="repaymentFrom"></select>
+            </label>
+            <label>
+              收款人
+              <select id="repaymentTo"></select>
+            </label>
+            <label>
+              金額
+              <input id="repaymentAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0">
+            </label>
+            <p class="error-message" id="repaymentError" role="alert"></p>
+            <button class="primary-action" type="submit">記錄還款</button>
+          </form>
+        </section>
+
+        <section class="panel ledger-panel" aria-labelledby="ledgerTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="ledgerTitle">帳本紀錄</h2>
+              <p>花費和還款都可以刪除，結算會即時更新。</p>
+            </div>
+          </div>
+          <div class="expense-list" id="expenseList" aria-live="polite"></div>
+          <div class="repayment-list" id="repaymentList" aria-live="polite"></div>
+        </section>
+
+        <aside class="summary">
+          <section class="result-card">
+            <p class="eyebrow">Result</p>
+            <h2>目前還需要還</h2>
+            <div class="settlement-list" id="settlementList" aria-live="polite"></div>
+          </section>
+          <section class="result-card muted">
+            <h2>每人狀態</h2>
+            <div class="balance-list" id="balanceList"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
